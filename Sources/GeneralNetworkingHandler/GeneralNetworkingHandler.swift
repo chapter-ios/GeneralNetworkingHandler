@@ -5,18 +5,32 @@ import Foundation
 import Alamofire
 
 public protocol Networking {
-    func get<T: Decodable & Sendable>(_ url: URL) async throws -> T
+    func get<T: Decodable & Sendable>(
+        _ url: String,
+        token: String?
+    ) async throws -> T
 }
 
 public final class NetworkingHelper: Networking {
-    
+
     public init() {}
 
-    public func get<T: Decodable & Sendable>(_ url: URL) async throws -> T {
+    public func get<T: Decodable & Sendable>(
+        _ url: String,
+        token: String?
+    ) async throws -> T {
 
         return try await withCheckedThrowingContinuation { continuation in
 
-            AF.request(url)
+            var headers: HTTPHeaders = [
+                "Accept": "application/json"
+            ]
+            
+            if let token = token {
+                headers.add(name: "Authorization", value: "Bearer \(token)")
+            }
+            
+            AF.request(url, method: .get, headers: headers)
                 .validate()
                 .responseDecodable(of: T.self) { response in
         
@@ -47,3 +61,4 @@ public final class NetworkingHelper: Networking {
         }
     }
 }
+
