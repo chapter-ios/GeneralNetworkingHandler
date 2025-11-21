@@ -22,39 +22,39 @@ public final class NetworkingHelper: Networking {
 
         return try await withCheckedThrowingContinuation { continuation in
 
-            var headers: HTTPHeaders = [
-                "Accept": "application/json"
-            ]
-            
+            var headers: HTTPHeaders = ["Accept": "application/json"]
+
             if let token = token {
                 headers.add(name: "Authorization", value: "Bearer \(token)")
             }
-            
+
             AF.request(url, method: .get, headers: headers)
                 .validate()
                 .responseDecodable(of: T.self) { response in
-        
+
                     switch response.result {
                     case .success(let decoded):
                         continuation.resume(returning: decoded)
 
                     case .failure(_):
-                        
+
                         let statusCode = response.response?.statusCode
-                        let message = try? JSONDecoder().decode(ErrorResponse.self, from: response.data ?? Data()).unifiedMessage
-                        
+                        let message = try? JSONDecoder()
+                            .decode(ErrorResponse.self,
+                                    from: response.data ?? Data())
+                            .unifiedMessage
+
                         let apiError: ApiError
-                        
                         switch statusCode {
-                        case 400: return apiError = .badRequest(message: message)
-                        case 401: return apiError = .unauthorized
-                        case 403: return apiError = .forbidden
-                        case 404: return apiError = .notFound
+                        case 400: apiError = .badRequest(message: message)
+                        case 401: apiError = .unauthorized
+                        case 403: apiError = .forbidden
+                        case 404: apiError = .notFound
                         case 500: apiError = .serverError(message: message)
                         default:
-                            return apiError = .unknown(statusCode: statusCode, message: message)
+                            apiError = .unknown(statusCode: statusCode, message: message)
                         }
-                        
+
                         continuation.resume(throwing: apiError)
                     }
                 }
